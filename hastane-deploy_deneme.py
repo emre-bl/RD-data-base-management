@@ -106,76 +106,86 @@ def run():
 
         if user_ssn == "hastane müdürü":
             if user_pass == "123456":
+                import pandas as pd
+                st.sidebar.write("Welcome, hospital manager")
+                müdür = ["table creater", "table setter","table show","table deleter"]
+                option = st.selectbox("Select an option", müdür)
 
-                st.write("# -Select Table")
-                table_name = select_table()
-                table, column_names = select_columns_mudur(table_name)
-                col_constraint_dict = select_constraints(table, column_names)
-                print("11111111111111111111")
-                data = get_table(table_name, column_names, col_constraint_dict)
-                print("222222222222222222222")
-                st.write("#", table_name)
-                st.table(data)
+                if option == "table show":
+                    st.write("# -Select Table")
+                    table_name = select_table()
+                    table, column_names = select_columns_mudur(table_name)
+                    col_constraint_dict = select_constraints(table, column_names)
+                    print("11111111111111111111")
+                    data = get_table(table_name, column_names, col_constraint_dict)
+                    print("222222222222222222222")
+                    st.write("#", table_name)
+                    st.table(data)
 
-            elif user_pass == "table_creater":
+                elif option == "table creater":
 
-                uploaded_file = st.file_uploader("Upload new tables .sql file", type=["sql"])
-                if uploaded_file is not None:
-                    # yüklenen dosyayı alıp içindekileri execute et
-                    from sqlalchemy import create_engine
-                    from sqlalchemy import text
-                    # or from sqlalchemy.sql import text
+                    uploaded_file = st.file_uploader("Upload new tables .sql file", type=["sql"])
+                    if uploaded_file is not None:
+                        # yüklenen dosyayı alıp içindekileri execute et
+                        from sqlalchemy import create_engine
+                        from sqlalchemy import text
+                        # or from sqlalchemy.sql import text
 
-                    engine = create_engine('mysql://{USR}:{PWD}@localhost:3306/db', echo=True)
+                        engine = create_engine('mysql://{USR}:{PWD}@localhost:3306/db', echo=True)
 
-                    with engine.connect() as con:
-                        query = text(uploaded_file.read())
-                        con.execute(query)
+                        with engine.connect() as con:
+                            query = text(uploaded_file.read())
+                            con.execute(query)
 
-            elif user_pass == "table_setter":
+                elif option == "table setter":
 
-                st.write("# -Update Table")
-                table_name = select_table()
-                table, column_names = select_columns(table_name)
-                col_constraint_dict = select_constraints(table, column_names)
+                    st.write("# -Update Table")
+                    table_name = select_table()
+                    table, column_names = select_columns_mudur(table_name)
+                    col_constraint_dict = select_constraints(table, column_names)
 
-                st.write("## Selected New Columns Values")
-                new_col_values = {}
-                for col in column_names:
-                    new_col_values[col] = st.text_input("New value for", col)
+                    st.write("## Selected New Columns Values")
+                    new_col_values = {}
+                    dFrame = {}
+                    for col in column_names:
+                        new_value = st.text_input("**New value for**")
+                        new_col_values[col] = new_value
+                        dFrame[col] = [new_value]
 
-                data = get_table(table_name, column_names, col_constraint_dict)
-                ## new_col_values kullanarak tabloyu güncelle
+                    st.write("# Old ", table_name)
+                    data = get_table(table_name, constraints = col_constraint_dict)
+                    st.table(data)
+                    st.write("# New ", table_name)
+                    new_table = pd.DataFrame(dFrame)   
+                    st.table(new_table)
 
-                st.write("# Updated", table_name)
-                st.write(data)
+                    
 
+                    if st.button('update table'):
+                        update_table(table_name, col_constraint_dict, new_col_values)
+                        # bruada tabloyu sil      
+                    else:
+                        pass
+                #table deleterı düzelt
+                elif option == "table deleter":
 
-                if st.button('update table', on_click=None):
-                    print("table updated"*100)
-                    # bruada tabloyu sil      
-                else:
-                    pass
+                    st.write("# -Delete Table")
+                    table_name = select_table()
+                    
+                    if table_name != "Select a table":
+                        table = get_table(table_name)
+                        column_names = list(table.columns)
+                    col_constraint_dict = select_constraints(table, column_names)
 
-            elif user_pass == "table_deleter":
+                    data = get_table(table_name, column_names, col_constraint_dict)
+                    st.write("#", table_name)
+                    st.write(data)
 
-                st.write("# -Delete Table")
-                table_name = select_table()
-                
-                if table_name != "Select a table":
-                    table = get_table(table_name)
-                    column_names = list(table.columns)
-                col_constraint_dict = select_constraints(table, column_names)
-
-                data = get_table(table_name, column_names, col_constraint_dict)
-                st.write("#", table_name)
-                st.write(data)
-
-                if st.button('delete table', on_click=None):
-                    print("table deleted"*100)
-                    # bruada tabloyu sil       
-                else:
-                    pass
+                    if st.button('delete table', on_click=None):
+                        print("table deleted"*100)
+                        # bruada tabloyu sil       
+                    else:
+                        pass
 
             else:
                 st.sidebar.write("Non-granted login")

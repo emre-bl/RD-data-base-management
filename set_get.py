@@ -22,6 +22,17 @@ def list_to_columns(list_of_columns):
     cols = cols[:-2]
     return cols
 
+def dict_to_values(dic):
+    values = ""
+    for _ in dic.keys():
+        values += _ + " = "
+        if type(dic[_]) == str:
+            values += "'" + dic[_] + "', "
+        else:
+            values += str(dic[_]) + ", "
+    print("values: ", values)
+    return values[:-2]
+
 def get_engine_and_conn():
     import psycopg2
     import pandas as pd
@@ -90,6 +101,9 @@ def update_table(table_name, constraints, values):
                                 user="postgres",
                                 password="4664")
         cursor = conn.cursor()
+
+        constraints = dict_to_constraints(constraints)
+        values = dict_to_values(values)
 
         # UPDATE sorgusu oluşturun
         query = f"UPDATE {table_name} SET {values} WHERE {constraints}"
