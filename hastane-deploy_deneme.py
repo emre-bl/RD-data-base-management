@@ -1,15 +1,14 @@
 # %% [markdown]
 # https://github.com/emre-bl/RD-data-base-management/blob/main/sql_connection.ipynb
-database_tables = ["Select a table", "bina", "ekip", "calisan", "virus", "laboratuar", "laboratuarmalzemeler", "binalokasyon"]
 # %%
 import streamlit as st
 import hashlib
 
 
 #def get_table(table_name, column_names="*", col_constraint_dict={}):
-from set_get import get_engine_and_conn, delete_from_table, get_table, update_table
+from set_get import get_engine_and_conn, delete_from_table, get_table, update_table, run_sql, list_tables
 
-
+database_tables = list_tables()
 
 def greet_user(calisanlar, user_ssn):
     user = calisanlar[calisanlar["ssn"] == user_ssn][["ad", "soyad", "ekipadı"]]
@@ -17,18 +16,22 @@ def greet_user(calisanlar, user_ssn):
 
     if user_ssn in list(ekipler["yöneticissn"]):
         st.sidebar.write("Welcome,", user["ad"].iloc[0], user["soyad"].iloc[0] , "(menager of", ekipler[ekipler["yöneticissn"] == user_ssn]["ekipadı"].iloc[0],")")  
+        st.sidebar.write("Your team are working on", ekipler[ekipler["yöneticissn"] == user_ssn]["virüsadı"].iloc[0], "virus.")
+        st.sidebar.write("Your team are working in build: ", ekipler["binano"].iloc[0], "in lab:", ekipler["labno"].iloc[0])
         
         # ekip başkanı ekibini kontrol ediyor
         if st.button('check my team', on_click=None):
-            st.sidebar.write("Your team are working on", ekipler[ekipler["yöneticissn"] == user_ssn]["virüsadı"].iloc[0], "virus.")
-            ekip_calisanları = get_table("calisan", constraints="ekipadı='" + str(ekipler[ekipler["yöneticissn"] == user_ssn]["ekipadı"].iloc[0]) + "'")
-            st.write(ekip_calisanları)
+            ekip_calisanları = calisanlar[calisanlar["ekipadı"] == ekipler[ekipler["yöneticissn"] == user_ssn]["ekipadı"].iloc[0]]
+            st.table(ekip_calisanları[["ad","soyad","yaş","cinsiyet","calisantipi"]])
             if st.button('go back', on_click=None):
                 pass        
         else:
             pass
     else:
         st.sidebar.write("Welcome,", user["ad"].iloc[0], user["soyad"].iloc[0],  "(employee at", user["ekipadı"].iloc[0] ,")")
+        st.sidebar.write("Your team are working on", ekipler[ekipler["ekipadı"] == user["ekipadı"].iloc[0]]["virüsadı"].iloc[0], "virus.")
+        st.sidebar.write("Your team are working in build: ", ekipler["binano"].iloc[0], "in lab:", ekipler["labno"].iloc[0])
+        
 
 def select_table():
     global database_tables
@@ -106,9 +109,11 @@ def run():
 
         if user_ssn == "hastane müdürü":
             if user_pass == "123456":
+                database_tables = list_tables()
+                import psycopg2
                 import pandas as pd
                 st.sidebar.write("Welcome, hospital manager")
-                müdür = ["table creater", "table setter","table show","table deleter"]
+                müdür = ["run .sql file", "table setter","table show","table deleter"]
                 option = st.selectbox("Select an option", müdür)
 
                 if option == "table show":
@@ -116,26 +121,18 @@ def run():
                     table_name = select_table()
                     table, column_names = select_columns_mudur(table_name)
                     col_constraint_dict = select_constraints(table, column_names)
-                    print("11111111111111111111")
                     data = get_table(table_name, column_names, col_constraint_dict)
-                    print("222222222222222222222")
                     st.write("#", table_name)
                     st.table(data)
 
-                elif option == "table creater":
-
+                elif option == "run .sql file":
                     uploaded_file = st.file_uploader("Upload new tables .sql file", type=["sql"])
-                    if uploaded_file is not None:
-                        # yüklenen dosyayı alıp içindekileri execute et
-                        from sqlalchemy import create_engine
-                        from sqlalchemy import text
-                        # or from sqlalchemy.sql import text
+                    if st.button('run .sql file', on_click=None):
+                        run_sql(uploaded_file)
+                        # bruada tabloyu sil       
+                    else:
+                        pass
 
-                        engine = create_engine('mysql://{USR}:{PWD}@localhost:3306/db', echo=True)
-
-                        with engine.connect() as con:
-                            query = text(uploaded_file.read())
-                            con.execute(query)
 
                 elif option == "table setter":
 
@@ -147,8 +144,10 @@ def run():
                     st.write("## Selected New Columns Values")
                     new_col_values = {}
                     dFrame = {}
+                    
+                    #burayı düzelt. constraints aldıktan sonra değiştirilcek columnları seç
                     for col in column_names:
-                        new_value = st.text_input("**New value for**")
+                        new_value = st.text_input("**New value for**", col)
                         new_col_values[col] = new_value
                         dFrame[col] = [new_value]
 
@@ -182,10 +181,13 @@ def run():
                     st.write(data)
 
                     if st.button('delete table', on_click=None):
-                        print("table deleted"*100)
+                        delete_from_table(table_name, col_constraint_dict)
+                        
                         # bruada tabloyu sil       
                     else:
                         pass
+                    
+                database_tables = list_tables()
 
             else:
                 st.sidebar.write("Non-granted login")

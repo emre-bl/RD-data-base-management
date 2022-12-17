@@ -1,3 +1,24 @@
+def list_tables():
+    import psycopg2
+    # Veritabanına bağlanmak için psycopg2 kütüphanesini kullanıyoruz
+    conn = psycopg2.connect(host="localhost",
+                                database="Labaratuar",
+                                user="postgres",
+                                password="4664")
+    cur = conn.cursor()
+
+    # Veritabanında bulunan tüm tabloları listeleyen SQL sorgusunu çalıştırıyoruz
+    cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")
+
+    # Sorgunun sonucunu liste olarak alıyoruz
+    tables = [table[0] for table in cur.fetchall() if len(table[0]) > 0]
+
+    # İşlemler bittikten sonra veritabanı bağlantısını kapatıyoruz
+    cur.close()
+    conn.close()
+
+    return tables
+
 
 def dict_to_constraints(dic):
     query = ""
@@ -59,6 +80,7 @@ def delete_from_table(table_name, constraints):
         cur = conn.cursor()
 
         # DELETE sorgusu oluşturuluyor
+        constraints = dict_to_constraints(constraints)
         query = f"DELETE FROM {table_name} WHERE {constraints}"
 
         # Sorgu çalıştırılıyor ve kayıtlar siliniyor
@@ -120,5 +142,28 @@ def update_table(table_name, constraints, values):
         if conn is not None:
             conn.close()
 
+def run_sql(file):
+    from io import StringIO
+    import psycopg2
+
+    if file is not None:
+        conn = psycopg2.connect(host="localhost",
+                                database="Labaratuar",                        
+                                user="postgres",
+                                password="4664")
+        cur = conn.cursor()
+                        
+                        
+        stringio = StringIO(file.getvalue().decode("utf-8"))
+        string_query = stringio.read()
 
 
+        # Dosyadaki sorguları ayrıştır
+        sql_commands = string_query.split(';')
+        print("sql commands",sql_commands)
+        # Sorguları tek tek çalıştır
+        for command in sql_commands:
+            if command != "\n":
+                print("COMMAND ", command)
+                cur.execute(command + ";")
+        conn.commit()
