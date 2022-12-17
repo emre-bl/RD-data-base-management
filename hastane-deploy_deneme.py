@@ -6,7 +6,7 @@ import hashlib
 
 
 #def get_table(table_name, column_names="*", col_constraint_dict={}):
-from set_get import get_engine_and_conn, delete_from_table, get_table, update_table, run_sql, list_tables
+from set_get import get_engine_and_conn, delete_from_table, get_table, update_table, run_sql, list_tables, drop_table
 
 database_tables = list_tables()
 
@@ -38,7 +38,7 @@ def select_table():
     table_name = st.selectbox(" ", database_tables)
     return table_name
 
-def select_columns(table_name):
+def select_columns(table_name, u = 0):
     if table_name != "Select a table":
         table = get_table(table_name)
         table_columns = list(table.columns)
@@ -48,20 +48,30 @@ def select_columns(table_name):
             table_columns.remove("maas")
 
         st.write("## Select Columns")
-        column_names = st.multiselect("Requested columns", options=table_columns, key=str)
+        
+        if u == 0:
+            column_names = st.multiselect("Requested columns", options=table_columns, key=str)
+        else: 
+            column_names = st.multiselect("Select constraints columns", options=table_columns)
+
         if column_names == []:
             column_names = table_columns
         else:
             column_names = (",".join(column_names)).split(",")
     return table, column_names
 
-def select_columns_mudur(table_name):
+def select_columns_mudur(table_name, u = 0):
     if table_name != "Select a table":
         table = get_table(table_name)
         table_columns = list(table.columns)
 
         st.write("## Select Columns")
-        column_names = st.multiselect("Requested columns", options=table_columns, key=str)
+
+        if u == 0:
+            column_names = st.multiselect("Requested columns", options=table_columns, key=str)
+        else: 
+            column_names = st.multiselect("Updating columns", options=table_columns)
+        
         if column_names == []:
             column_names = table_columns
         else:
@@ -113,7 +123,7 @@ def run():
                 import psycopg2
                 import pandas as pd
                 st.sidebar.write("Welcome, hospital manager")
-                müdür = ["run .sql file", "table setter","table show","table deleter"]
+                müdür = ["run .sql file", "table setter","table show","table deleter", "table dropper"]
                 option = st.selectbox("Select an option", müdür)
 
                 if option == "table show":
@@ -142,23 +152,15 @@ def run():
                     col_constraint_dict = select_constraints(table, column_names)
 
                     st.write("## Selected New Columns Values")
-                    new_col_values = {}
-                    dFrame = {}
-                    
-                    #burayı düzelt. constraints aldıktan sonra değiştirilcek columnları seç
-                    for col in column_names:
-                        new_value = st.text_input("**New value for**", col)
-                        new_col_values[col] = new_value
-                        dFrame[col] = [new_value]
+                    table, updating_column_names = select_columns_mudur(table_name, u=1)
 
+                    new_col_values = {}
+                    for col in updating_column_names:
+                        new_col_values[col] = st.text_input("New value for " + str(col), col)
+                    
                     st.write("# Old ", table_name)
                     data = get_table(table_name, constraints = col_constraint_dict)
                     st.table(data)
-                    st.write("# New ", table_name)
-                    new_table = pd.DataFrame(dFrame)   
-                    st.table(new_table)
-
-                    
 
                     if st.button('update table'):
                         update_table(table_name, col_constraint_dict, new_col_values)
@@ -186,6 +188,24 @@ def run():
                         # bruada tabloyu sil       
                     else:
                         pass
+
+                elif option == "table dropper":
+
+                    st.write("# -Drop Table")
+                    table_name = select_table()
+                    
+                    if table_name != "Select a table":
+                        table = get_table(table_name)
+
+                    data = get_table(table_name)
+                    st.write("#", table_name)
+                    st.write(data)
+
+                    if st.button('DROP table', on_click=None):
+                        drop_table(table_name)
+                        # bruada tabloyu sil       
+                    else:
+                        pass
                     
                 database_tables = list_tables()
 
@@ -201,8 +221,11 @@ def run():
             greet_user(calisanlar, user_ssn)
             table_name = select_table()
             table, column_names = select_columns(table_name)
-            col_constraint_dict = select_constraints(table, column_names)
 
+            table, updating_column_names = select_columns(table_name, u=1)
+
+            col_constraint_dict = select_constraints(table, updating_column_names)
+            
             data = get_table(table_name, column_names, col_constraint_dict)
             st.write("#", table_name)
             st.write(data)

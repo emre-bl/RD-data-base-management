@@ -167,3 +167,27 @@ def run_sql(file):
                 print("COMMAND ", command)
                 cur.execute(command + ";")
         conn.commit()
+
+def drop_table(table_name):
+    import psycopg2
+    try:
+        # Bağlantı kuruluyor
+        conn = psycopg2.connect(host="localhost",
+                                    database="Labaratuar",
+                                    user="postgres",
+                                    password="4664")
+        cur = conn.cursor()
+
+        # DROP sorgusu oluşturuluyor
+        query = f"DROP TABLE {table_name}"
+
+        # Sorgu çalıştırılıyor ve tablo siliniyor
+        cur.execute(query)
+        conn.commit()
+
+        # Bağlantı kapatılıyor
+        cur.close()
+        conn.close()
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while deleting records from PostgreSQL", error)
