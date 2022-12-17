@@ -2,13 +2,25 @@
 def dict_to_constraints(dic):
     query = ""
     for _ in dic.keys():
+        query += "("
         for _c in dic[_]:
-            query += "" + _ + "='" + _c + "' OR "
-            query = query[:-4]
+            if type(_c) == str:
+                query += "" + _ + "='" + _c + "' OR "
+            else:
+                query += "" + _ + "=" + str(_c) + " OR "
+        query = query[:-4]
+        query += ")"
         query += " AND "
 
     query = query[:-5]
     return query
+
+def list_to_columns(list_of_columns):
+    cols = ""
+    for _ in list_of_columns:
+        cols += _ + ", "
+    cols = cols[:-2]
+    return cols
 
 def get_engine_and_conn():
     import psycopg2
@@ -63,7 +75,7 @@ def get_table(table_name, column_names = "*", constraints={}):
     """
     engine, conn = get_engine_and_conn()
     where = "" if query_c=="" else ' WHERE '
-
+    column_names = "*" if column_names == "*" else list_to_columns(column_names)    
     table = pd.read_sql('SELECT ' + column_names + ' FROM ' + table_name + where + query_c, conn)
     return table
 

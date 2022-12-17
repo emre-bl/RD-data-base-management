@@ -52,6 +52,19 @@ def select_columns(table_name):
             column_names = (",".join(column_names)).split(",")
     return table, column_names
 
+def select_columns_mudur(table_name):
+    if table_name != "Select a table":
+        table = get_table(table_name)
+        table_columns = list(table.columns)
+
+        st.write("## Select Columns")
+        column_names = st.multiselect("Requested columns", options=table_columns, key=str)
+        if column_names == []:
+            column_names = table_columns
+        else:
+            column_names = (",".join(column_names)).split(",")
+    return table, column_names
+
 def select_constraints(table, column_names):
     #constraints = st.text_input("constraints(if there is any):")
     #st.write(constraints)
@@ -67,9 +80,9 @@ def select_constraints(table, column_names):
             else:
                 start_cons, end_cons = st.select_slider(label=col, options=list(range(table[col].min(),table[col].max()+1)), value=(table[col].min(),table[col].max()))
                 col_constraint_dict[col] = list(range(start_cons, end_cons + 1))
-    print(col_constraint_dict)
-    
     return col_constraint_dict
+
+
 
 
 
@@ -78,15 +91,13 @@ def select_constraints(table, column_names):
 st.write("# Simple Hospital virus research web service")
 
 
-# HASTANE MÜDÜRÜ SSN MAAŞ GÖRSÜN TABLEDA
-
-
 # taking input
 def run():
+    print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
+    st.sidebar.image("logo.png", width=250,use_column_width=True)
     st.sidebar.write("# Login")
     user_ssn = st.sidebar.text_input("User ssn")
     user_pass = st.sidebar.text_input("User password")
-
     if user_ssn == "" or user_pass == "":
         st.sidebar.write("Please log in with your ssn and password.")
     else:
@@ -94,16 +105,17 @@ def run():
         ssn_list = list(calisanlar["ssn"])
 
         if user_ssn == "hastane müdürü":
-            if user_pass == "table_getter":
+            if user_pass == "123456":
 
                 st.write("# -Select Table")
                 table_name = select_table()
-                table, column_names = select_columns(table_name)
+                table, column_names = select_columns_mudur(table_name)
                 col_constraint_dict = select_constraints(table, column_names)
-
+                print("11111111111111111111")
                 data = get_table(table_name, column_names, col_constraint_dict)
+                print("222222222222222222222")
                 st.write("#", table_name)
-                st.write(data)
+                st.table(data)
 
             elif user_pass == "table_creater":
 
@@ -175,7 +187,6 @@ def run():
 
         elif user_ssn in ssn_list and user_pass == hashlib.md5(user_ssn.encode('utf8')).hexdigest():
             greet_user(calisanlar, user_ssn)
-            
             table_name = select_table()
             table, column_names = select_columns(table_name)
             col_constraint_dict = select_constraints(table, column_names)
